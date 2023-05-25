@@ -44,14 +44,15 @@ def extract_woi_context(commune_memoirs, wois, method, count = 0):
 
         filename = row[0]
 
-        if filename == "du_camp_1.txt" or filename == "du_camp_2.txt":
-            filename = "du_camp.txt"
-        if filename == "arnould_1.txt" or filename == "arnould_2.txt" or filename == "arnould_3.txt":
-            filename = "arnould.txt"
-        if filename == "cluseret_1.txt" or filename == "cluseret_2.txt" or filename == "cluseret_3.txt":
-            filename = "cluseret.txt"
-        if filename == "da_costa_1.txt" or filename == "da_costa_2.txt" or filename == "da_costa_3.txt":
-            filename = "da_costa.txt"
+        # commented out because this will corrupt lengths by token count
+        #if filename == "du_camp_1.txt" or filename == "du_camp_2.txt":
+        #    filename = "du_camp.txt"
+        #if filename == "arnould_1.txt" or filename == "arnould_2.txt" or filename == "arnould_3.txt":
+        #    filename = "arnould.txt"
+        #if filename == "cluseret_1.txt" or filename == "cluseret_2.txt" or filename == "cluseret_3.txt":
+        #    filename = "cluseret.txt"
+        #if filename == "da_costa_1.txt" or filename == "da_costa_2.txt" or filename == "da_costa_3.txt":
+        #    filename = "da_costa.txt"
 
         bias = row[1]
         text = row[2]
