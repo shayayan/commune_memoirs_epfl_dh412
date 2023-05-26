@@ -4,6 +4,22 @@ from spellchecker import SpellChecker
 from nltk.corpus import stopwords
 from collections import Counter
 import tqdm
+from tqdm import tqdm
+import nltk
+from nltk.corpus import wordnet as wn
+import numpy as np
+from numpy import dot
+from numpy.linalg import norm
+import spacy
+import pandas as pd
+import re
+
+# Simple cosine similarity
+def cos_sim(v1,v2):
+    if norm(v1) == 0 or norm(v2) == 0:
+        print("empty vector in cos_sim, something wrong")
+        error
+    return dot(v1,v2)/(norm(v1)*norm(v2))
 
 # across set of unique non-stop-word tokens across all our memoirs, check for misspellings of our important words, and save as dictionary
 # this takes a while. run sparingly
@@ -82,11 +98,61 @@ def extract_woi_context(commune_memoirs, wois, method, count = 0):
                     elif method == "<sb>" or method == "<pb>":
                         method_s = method
                         pre_string = text_lower[text_lower[:location].rfind(method):location]
+                        if "<pb>" in pre_string and method == "<sb>":
+                            pre_string = pre_string[pre_string.rfind("<pb>"):]
                         post_string_tmp = text_lower[location:]
                         post_string = post_string_tmp[:post_string_tmp.find(method) + 4]
+                        if "<pb>" in post_string and method == "<sb>":
+                            post_string = post_string[:post_string.find("<pb>")]
                         tmp_sequence = pre_string + post_string
                         woi_location = 0
                         woi_location = len(pre_string)
                     woi_context_extraction.loc[len(woi_context_extraction)] = [filename, memoir_len_sans_sb_pb, bias, woi, woi_location, method_s, tmp_sequence]
     
     return woi_context_extraction
+
+# part of metaphor recognition
+# construct set of synonyms, hypernyms, and inflections from WordNet for a single word
+# pass in matrix in preserve words' candidate sets in memory (helps if looping over lots of text)
+# inflecteur is passed in because it takes a while to initialize it
+# 'candidate set' from https://aura.abdn.ac.uk/bitstream/handle/2164/10781/P18_1113.pdf?sequence=1
+def find_candidate_set(word, inflecteur, dp_matrix = {}):
+    if word in dp_matrix.keys():
+        return dp_matrix[word], dp_matrix
+    else:
+        synsets = wn.synsets(word, lang='fra')
+        synonyms = []
+        hypernyms = []
+        for synset in synsets:
+            synonyms.extend(synset.lemma_names(lang='fra'))
+            hypernyms.extend(synset.hypernyms())
+        hypernym_names = []
+        for hypernym in hypernyms:
+            hypernym_lemmas = hypernym.lemmas(lang='fra')
+            hypernym_names.extend([lemma.name() for lemma in hypernym_lemmas])
+        hypernym_names = list(set(hypernym_names))
+        words_to_inflect = synonyms + [word] + hypernym_names
+        words_to_inflect = list(set([t.lower() for t in words_to_inflect]))
+        inflections = []
+        for word in words_to_inflect:
+            try:
+                inflections = inflections + inflecteur.get_word_form(word)["lemma"].tolist()
+            except:
+                pass
+        candidate_set = list(set(words_to_inflect + inflections))
+        dp_matrix[word] = candidate_set
+        return candidate_set, dp_matrix
+
+# part of metaphor recognition
+# compare candidate set tokens to an average embedding to find the best candidate
+# spacy model passed in
+def find_best_candidate(candidate_set, sans_t_avg_embedding, nlp):
+    max_sim = -2
+    best_candidate = None
+    for candidate in candidate_set:
+        if nlp(candidate).has_vector == True:
+            curr_sim = cos_sim(nlp(candidate).vector, sans_t_avg_embedding)
+            if curr_sim > max_sim:
+                max_sim = curr_sim
+                best_candidate = candidate
+    return best_candidate
