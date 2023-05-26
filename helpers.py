@@ -78,7 +78,7 @@ def extract_woi_context(commune_memoirs, wois, method, count = 0):
         text_lower = text.lower()
         for woi in wois:
             if woi.lower() in text_lower:
-                indices_object = re.finditer(pattern=woi, string=text_lower)
+                indices_object = re.finditer(pattern=r'\b{}\b'.format(re.escape(woi.lower())), string=text_lower)
                 indices = [index.start() for index in indices_object]
                 for location in indices:
                     if method == "token" or method == "character":
