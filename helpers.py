@@ -187,3 +187,37 @@ def pctile(lst):
         return np.percentile(lst, 10)
     else:
         return 99
+    
+def recursive_find_adjs(root, sent):
+        children = [w for w in sent.words if w.head == root.id]
+        if not children:
+            return []
+        filtered_c = [w for w in children if w.deprel == "conj" and w.upos == "ADJ"]
+        # Do not include an adjective if it is the parent of a noun to prevent
+        results = [w for w in filtered_c if not any(sub.head == w.id and sub.upos == "NOUN" for sub in sent.words)]
+        for w in children:
+            results += recursive_find_adjs(w, sent)
+        return results
+
+def extract_noun_adj_pairs(text, stanz_nlp):
+    text = text.replace("<sb>","").replace("<pb>","")
+    doc = stanz_nlp(text)
+    noun_adj_pairs = {}
+    for sent in doc.sentences:
+        nouns = [w for w in sent.words if w.upos == "NOUN"]
+        for noun in nouns:
+            cop_root = sent.words[noun.head-1]
+            adjs = [cop_root] + recursive_find_adjs(cop_root, sent) if cop_root.upos == "ADJ" else []
+            mod_adjs = [w for w in sent.words if w.head == noun.id and w.upos == "ADJ"]
+            if mod_adjs:
+                mod_adj = mod_adjs[0]
+                adjs.extend([mod_adj] + recursive_find_adjs(mod_adj, sent))
+            if adjs:
+                unique_adjs = []
+                unique_ids = set()
+                for adj in adjs:
+                    if adj.id not in unique_ids:
+                        unique_adjs.append(adj)
+                        unique_ids.add(adj.id)
+                noun_adj_pairs[noun.text] = " ".join([adj.text for adj in unique_adjs])
+    return noun_adj_pairs
