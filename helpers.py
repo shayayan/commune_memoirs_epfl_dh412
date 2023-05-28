@@ -52,7 +52,13 @@ def find_potential_contractions(memoir):
 # method can be "token", "character", "<sb>", or "<pb>". The first two must be followed by an integer in the arguments.
 # character, <sb>, <pb> are way faster than token. 
 # character is probably the most appropriate extraction method given the unreliability of sb and pb tokens.
-def extract_woi_context(commune_memoirs, wois, method, count = 0):
+def extract_woi_context(commune_memoirs, wois, method, count = 0, pull_synonyms = False):
+
+    if pull_synonyms == True:
+        tmp = []
+        for word in wois:
+            tmp.extend(pull_lemmatized_synonyms(word))
+        wois = list(set(tmp + wois))
 
     woi_context_extraction = pd.DataFrame(columns=['filename', 'memoir_len_sans_sb_pb', 'bias', 'woi', 'woi_location', 'extraction_method', 'text'])
 
@@ -156,3 +162,28 @@ def find_best_candidate(candidate_set, sans_t_avg_embedding, nlp):
                 max_sim = curr_sim
                 best_candidate = candidate
     return best_candidate
+
+# synonym extractor (based on wordnet)
+def pull_lemmatized_synonyms(word):
+    synsets = wn.synsets("ivre", lang='fra')
+    synonyms = []
+    for synset in synsets:
+        synonyms.extend(synset.lemma_names(lang='fra'))
+    return list(set(synonyms + [word]))
+
+# list_to_median - for making sentence embedding conclusions
+def median(lst):
+    if len(lst) != 0:
+        return np.median(lst)
+    else:
+        return 99
+def min(lst):
+    if len(lst) != 0:
+        return np.min(lst)
+    else:
+        return 99
+def pctile(lst):
+    if len(lst) != 0:
+        return np.percentile(lst, 10)
+    else:
+        return 99
